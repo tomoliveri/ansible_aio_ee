@@ -1,0 +1,5 @@
+openshift
+PyYAML
+kubernetes>=12.0.0
+requests-oauthlib
+jsonpatch

@@ -1,0 +1,2 @@
+requests
+git+https://github.com/hpe-storage/nimble-python-sdk.git

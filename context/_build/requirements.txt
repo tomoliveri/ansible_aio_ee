@@ -1,0 +1,7 @@
+# awxkit
+# botocore
+# boto3
+# cryptography
+# python-dateutil
+# PyYAML
+# pyOpenSSL

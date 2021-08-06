@@ -1,0 +1,5 @@
+openssl
+cryptography>=3.0
+PyYAML>=3.11
+pyOpenSSL>=0.16
+acme-tiny>=4.0.0

@@ -1,0 +1,6 @@
+solidfire-sdk-python
+requests
+netapp-lib
+xmltodict
+six
+jmespath

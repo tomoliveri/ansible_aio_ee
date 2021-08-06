@@ -1,0 +1,3 @@
+azure
+azure-mgmt
+azure-mgmt-netapp
