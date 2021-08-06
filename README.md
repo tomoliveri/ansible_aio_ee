@@ -10,7 +10,7 @@ The Ansible team decided to take the batteries out.
 
 *This makes it easy to put the batteries back in.*
 
-This provides a large number of community collections, allowing you to use modules on AWX or Automation Controller with little fuss. It includes All collections but not all python libraries.
+This provides a large number of community collections, allowing you to use modules on AWX or Automation Controller with little fuss. It includes almost all collections (83 out of 89 of the most popular) but not all python libraries.
 
 ## Basic Installation
 
@@ -18,6 +18,8 @@ In your AWX / Ansible Automation controller UI, https://awx/#/execution_environm
 
 Add:
 ```docker.io/tomoliveri/ansible_aoi_ee:latest```
+
+You can then add it in job templates as required.
 
 ## Advanced Instalation
 
