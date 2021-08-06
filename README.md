@@ -130,9 +130,9 @@ See Ansible Builder for instructions - https://github.com/ansible/ansible-builde
 ### Disabled due to issue with azure_compute #
  - community.azure 
  - chocolatey.chocolatey 
- - azure.azcollection # Disabled due to issue with azure_compute #
- - netapp.um_info # Disabled due to issue with azure_compute
- - netapp.azure # Disabled due to issue with azure_compute
+ - azure.azcollection 
+ - netapp.um_info
+ - netapp.azure
 
 ### Seems to break things in spectacular fashion 
  - infinidat.infinibox 
