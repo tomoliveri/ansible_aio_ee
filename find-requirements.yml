@@ -1,0 +1,29 @@
+- name: Search community.general for requirements
+  hosts: localhost
+  connection: local
+
+  vars: 
+    folder_list: 
+      - action
+      - become
+      - cache
+      - callback
+      - connection
+      - filter
+      - inventory
+      - lookup
+      - module_utils
+      - modules
+    requirements_regex: '(?<=requirements: ).*$'
+
+  tasks:
+  - name: "Searching for a String"
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      line: "LogLevel debug"
+      state: present
+    check_mode: yes
+    register: presence
+
+  - name: Create requirements files from file names
+    shell: "cat {{ item }} | grep -v {{ requirements_regex }}"

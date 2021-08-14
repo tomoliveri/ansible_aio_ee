@@ -43,6 +43,20 @@ Feel free to reach out to me, or raise an issue here if you're having trouble an
 Building a new (and stripped down) execution environment will be the fastest way to get you up and going. 
 See Ansible Builder for instructions - https://github.com/ansible/ansible-builder 
 
+## Ansible Info
+
+```docker run -t -i --rm tomoliveri/ansible_aoi_ee bash
+bash-4.4# ansible --version
+ansible [core 2.11.4rc1.post0] 
+  config file = None
+  configured module search path = ['/home/runner/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/local/lib/python3.8/site-packages/ansible
+  ansible collection location = /home/runner/.ansible/collections:/usr/share/ansible/collections
+  executable location = /usr/local/bin/ansible
+  python version = 3.8.6 (default, Jan 29 2021, 17:38:16) [GCC 8.4.1 20200928 (Red Hat 8.4.1-1)]
+  jinja version = 2.10.3
+  libyaml = True```
+
 ## Included Collections
   - amazon.aws
   - arista.eos

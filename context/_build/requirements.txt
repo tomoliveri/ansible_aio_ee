@@ -1,7 +1,36 @@
-# awxkit
-# botocore
-# boto3
-# cryptography
-# python-dateutil
-# PyYAML
-# pyOpenSSL
+memcache
+redis
+prettytable
+LogDNA
+certifi
+flatdict
+logstash
+python-gitlab
+linode_api4
+requests
+dnspython
+python-consul
+pushbullet.py
+pingdom
+atomic
+pychef
+spotinst_sdk
+gunicorn
+pyghmi
+pycdlib
+linode-python
+matrix-client
+infoblox-client
+
+# In Testing
+nc-dnsapi
+
+
+# Known to cause issues / not a python package: 
+# pyrax 
+# lxc-python2
+# etcd3 - Insufficient space
+# python-ldap
+# facter
+# ruby-json
+# manageiq-client
