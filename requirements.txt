@@ -22,6 +22,7 @@ linode-python
 matrix-client
 infoblox-client
 nc-dnsapi
+pypsexec
 
 # In Testing
 

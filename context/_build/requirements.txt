@@ -21,9 +21,10 @@ pycdlib
 linode-python
 matrix-client
 infoblox-client
+nc-dnsapi
+pypsexec
 
 # In Testing
-nc-dnsapi
 
 
 # Known to cause issues / not a python package: 

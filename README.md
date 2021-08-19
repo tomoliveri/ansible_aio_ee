@@ -55,7 +55,8 @@ ansible [core 2.11.4rc1.post0]
   executable location = /usr/local/bin/ansible
   python version = 3.8.6 (default, Jan 29 2021, 17:38:16) [GCC 8.4.1 20200928 (Red Hat 8.4.1-1)]
   jinja version = 2.10.3
-  libyaml = True```
+  libyaml = True
+
 
 ## Included Collections
   - amazon.aws
