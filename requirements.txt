@@ -23,9 +23,7 @@ matrix-client
 infoblox-client
 nc-dnsapi
 pypsexec
-
-# In Testing
-
+urllib3
 
 # Known to cause issues / not a python package: 
 # pyrax 
