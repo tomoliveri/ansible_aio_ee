@@ -25,6 +25,7 @@ nc-dnsapi
 pypsexec
 urllib3
 pynetbox
+hvac
 
 # Known to cause issues / not a python package: 
 # pyrax 
