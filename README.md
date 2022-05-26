@@ -136,6 +136,7 @@ ansible [core 2.11.4rc1.post0]
   - purestorage.flasharray
   - purestorage.flashblade
   - sensu.sensu_go
+  - recordsansible.ara
   - servicenow.servicenow
   - splunk.es
   - t_systems_mms.icinga_director

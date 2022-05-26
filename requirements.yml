@@ -75,6 +75,7 @@ collections:
   - ovirt.ovirt
   - purestorage.flasharray
   - purestorage.flashblade
+  - recordsansible.ara
   - sensu.sensu_go
   - servicenow.servicenow
   - splunk.es
