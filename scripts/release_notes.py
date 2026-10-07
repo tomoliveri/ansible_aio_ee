@@ -46,6 +46,20 @@ def inputs():
     return version, core, sections
 
 
+def extra_info():
+    """Area (from '# --- Section' headers) and note (inline comment) per extra collection."""
+    info, area = {}, ""
+    for line in (ROOT / "extra-collections.txt").read_text().splitlines():
+        header = re.match(r"#\s*---\s*([A-Z].*)", line)
+        if header:
+            area = header.group(1).split("(")[0].strip()
+            continue
+        name, _, note = line.partition("#")
+        if name.strip():
+            info[name.strip()] = (area, note.strip())
+    return info
+
+
 def dropped(report):
     if not report or not pathlib.Path(report).is_file():
         return []
@@ -79,9 +93,17 @@ def release_section(version, core, sections, drops):
             *[f"- `{d.replace('optional:', '')}`" for d in drops],
             "",
         ]
+    info = extra_info()
+    rows = [(info.get(n, ("Other", ""))[0], n, v, info.get(n, ("", ""))[1]) for n, v in sections["extra"]]
+    rows += [("Dependency of an extra", n, v, "Required by another extra collection") for n, v in sections["dependency"]]
     lines += [
-        "**Extra collections** (beyond the ansible package): "
-        + ", ".join(f"`{n}` {v}" for n, v in sections["extra"]),
+        "### Extra collections",
+        "",
+        "Installed on top of the ansible community package:",
+        "",
+        "| Area | Collection | Version | Notes |",
+        "|---|---|---|---|",
+        *[f"| {a} | `{n}` | {v} | {note} |" for a, n, v, note in sorted(rows, key=lambda r: (r[0], r[1]))],
         "",
     ]
     return lines

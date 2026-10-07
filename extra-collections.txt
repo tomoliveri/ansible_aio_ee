@@ -6,31 +6,31 @@
 ansible.eda                        # Event-Driven Ansible
 ansible.hub                        # Automation Hub / Galaxy NG
 ansible.network                    # network validated content
-ansible.scm
+ansible.scm                        # Git/SCM operations
 ansible.security                   # pulls ibm.qradar, trendmicro.deepsec, ...
-ansible.yang
+ansible.yang                       # YANG / NETCONF data models
 awx.awx                            # AWX (upstream of ansible.controller)
 ceph.automation                    # Ceph (Red Hat Ceph Storage)
-cloud.common
+cloud.common                       # Shared cloud module utilities
 cloud.terraform                    # Terraform / HCP Terraform
 community.sap_install              # RHEL for SAP
-community.sap_launchpad
-community.sap_operations
+community.sap_launchpad            # SAP software downloads
+community.sap_operations           # SAP operations
 fedora.linux_system_roles          # RHEL System Roles
 freeipa.ansible_freeipa            # Identity Management (IdM)
 infra.aap_configuration            # AAP config-as-code (auto-skipped while it needs Hub-only ansible.platform)
-infra.aap_utilities
-infra.ah_configuration
+infra.aap_utilities                # AAP install/backup utilities
+infra.ah_configuration             # Automation Hub config-as-code
 infra.controller_configuration     # AWX / Controller config-as-code
-infra.convert2rhel
-infra.eda_configuration
-infra.ee_utilities
+infra.convert2rhel                 # CentOS/Oracle Linux to RHEL conversion
+infra.eda_configuration            # EDA controller config-as-code
+infra.ee_utilities                 # Build execution environments
 infra.leapp                        # RHEL in-place upgrades
-infra.lvm_snapshots
+infra.lvm_snapshots                # LVM snapshots for safe upgrades
 infra.quay_configuration           # Quay
 middleware_automation.amq          # AMQ Broker
 middleware_automation.amq_streams  # AMQ Streams (Kafka)
-middleware_automation.common
+middleware_automation.common       # Shared middleware utilities
 middleware_automation.infinispan   # Data Grid
 middleware_automation.jws          # JBoss Web Server
 middleware_automation.keycloak     # Keycloak / Red Hat build of Keycloak
@@ -40,44 +40,44 @@ redhatinsights.insights            # Red Hat Insights
 theforeman.operations              # Foreman / Satellite operations
 
 # --- Network and security vendors
-arista.avd
-arista.cvp
-arubanetworks.aoscx
-cisco.asa
-cisco.catalystcenter
-cisco.dcnm
-cisco.dnac
-cisco.ise
-cisco.nd
+arista.avd                         # Arista Validated Designs
+arista.cvp                         # Arista CloudVision
+arubanetworks.aoscx                # Aruba AOS-CX switches
+cisco.asa                          # Cisco ASA firewalls
+cisco.catalystcenter               # Cisco Catalyst Center
+cisco.dcnm                         # Cisco DCNM / NDFC
+cisco.dnac                         # Cisco DNA Center
+cisco.ise                          # Cisco ISE
+cisco.nd                           # Cisco Nexus Dashboard
 f5networks.f5_bigip                # F5 declarative (AS3/DO/TS)
-fortinet.fortiadc
-fortinet.fortianalyzer
-fortinet.fortiflexvm
-fortinet.fortiswitch
+fortinet.fortiadc                  # FortiADC
+fortinet.fortianalyzer             # FortiAnalyzer
+fortinet.fortiflexvm               # FortiFlex licensing
+fortinet.fortiswitch               # FortiSwitch
 juniper.device                     # Junos PyEZ
-junipernetworks.junos
-netscaler.adc
-nokia.srlinux
-nokia.sros
-nvidia.nvue
-openvswitch.openvswitch
-paloaltonetworks.panos
-sophos.sophos_firewall
-zscaler.ziacloud
-zscaler.zpacloud
-crowdstrike.falcon
+junipernetworks.junos              # Junos (network_cli / NETCONF)
+netscaler.adc                      # NetScaler ADC
+nokia.srlinux                      # Nokia SR Linux
+nokia.sros                         # Nokia SR OS
+nvidia.nvue                        # NVIDIA Cumulus Linux (NVUE)
+openvswitch.openvswitch            # Open vSwitch
+paloaltonetworks.panos             # Palo Alto PAN-OS firewalls & Panorama
+sophos.sophos_firewall             # Sophos Firewall
+zscaler.ziacloud                   # Zscaler Internet Access
+zscaler.zpacloud                   # Zscaler Private Access
+crowdstrike.falcon                 # CrowdStrike Falcon
 
 # --- Infrastructure, cloud and observability
-datadog.dd
-dellemc.powermax
-dellemc.powerscale
-dellemc.powerstore
-digitalocean.cloud
-dynatrace.oneagent
-hpe.ilo
-hpe.oneview
-infoblox.universal_ddi
-nutanix.ncp
-oracle.oci
-recordsansible.ara
-servicenow.itsm
+datadog.dd                         # Datadog Agent
+dellemc.powermax                   # Dell PowerMax
+dellemc.powerscale                 # Dell PowerScale (Isilon)
+dellemc.powerstore                 # Dell PowerStore
+digitalocean.cloud                 # DigitalOcean
+dynatrace.oneagent                 # Dynatrace OneAgent
+hpe.ilo                            # HPE iLO (Redfish)
+hpe.oneview                        # HPE OneView
+infoblox.universal_ddi             # Infoblox Universal DDI
+nutanix.ncp                        # Nutanix Cloud Platform
+oracle.oci                         # Oracle Cloud Infrastructure
+recordsansible.ara                 # ARA Records Ansible (run reporting)
+servicenow.itsm                    # ServiceNow ITSM
