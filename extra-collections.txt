@@ -1,7 +1,83 @@
 # Maintained collections not shipped in the ansible community package.
-awx.awx
+# Pinned to their latest stable Galaxy release by scripts/update-requirements.py.
+
+# --- Red Hat upstream projects (downstream redhat.* / ansible.controller live on
+# --- the subscription-only Automation Hub and can't be redistributed)
+ansible.eda                        # Event-Driven Ansible
+ansible.hub                        # Automation Hub / Galaxy NG
+ansible.network                    # network validated content
+ansible.scm
+ansible.security                   # pulls ibm.qradar, trendmicro.deepsec, ...
+ansible.yang
+awx.awx                            # AWX (upstream of ansible.controller)
+ceph.automation                    # Ceph (Red Hat Ceph Storage)
+cloud.common
+cloud.terraform                    # Terraform / HCP Terraform
+community.sap_install              # RHEL for SAP
+community.sap_launchpad
+community.sap_operations
+fedora.linux_system_roles          # RHEL System Roles
+freeipa.ansible_freeipa            # Identity Management (IdM)
+infra.aap_configuration            # AAP config-as-code (auto-skipped while it needs Hub-only ansible.platform)
+infra.aap_utilities
+infra.ah_configuration
+infra.controller_configuration     # AWX / Controller config-as-code
+infra.convert2rhel
+infra.eda_configuration
+infra.ee_utilities
+infra.leapp                        # RHEL in-place upgrades
+infra.lvm_snapshots
+infra.quay_configuration           # Quay
+middleware_automation.amq          # AMQ Broker
+middleware_automation.amq_streams  # AMQ Streams (Kafka)
+middleware_automation.common
+middleware_automation.infinispan   # Data Grid
+middleware_automation.jws          # JBoss Web Server
+middleware_automation.keycloak     # Keycloak / Red Hat build of Keycloak
+middleware_automation.wildfly      # WildFly / JBoss EAP
+pulp.squeezer                      # Pulp
+redhatinsights.insights            # Red Hat Insights
+theforeman.operations              # Foreman / Satellite operations
+
+# --- Network and security vendors
+arista.avd
+arista.cvp
+arubanetworks.aoscx
 cisco.asa
+cisco.catalystcenter
+cisco.dcnm
+cisco.dnac
+cisco.ise
+cisco.nd
+f5networks.f5_bigip                # F5 declarative (AS3/DO/TS)
+fortinet.fortiadc
+fortinet.fortianalyzer
+fortinet.fortiflexvm
+fortinet.fortiswitch
+juniper.device                     # Junos PyEZ
 junipernetworks.junos
+netscaler.adc
+nokia.srlinux
+nokia.sros
+nvidia.nvue
 openvswitch.openvswitch
+paloaltonetworks.panos
+sophos.sophos_firewall
+zscaler.ziacloud
+zscaler.zpacloud
+crowdstrike.falcon
+
+# --- Infrastructure, cloud and observability
+datadog.dd
+dellemc.powermax
+dellemc.powerscale
+dellemc.powerstore
+digitalocean.cloud
+dynatrace.oneagent
+hpe.ilo
+hpe.oneview
+infoblox.universal_ddi
+nutanix.ncp
+oracle.oci
 recordsansible.ara
 servicenow.itsm

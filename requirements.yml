@@ -95,10 +95,79 @@ collections:
   - {name: vultr.cloud, version: 1.14.1}
   - {name: vyos.vyos, version: 6.0.0}
   - {name: wti.remote, version: 1.0.11}
-  # Extras from extra-collections.txt (latest Galaxy release)
+  # Extras from extra-collections.txt (newest release compatible with this ansible-core)
+  - {name: ansible.eda, version: 2.13.0}
+  - {name: ansible.hub, version: 1.1.2}
+  - {name: ansible.network, version: 5.0.0}
+  - {name: ansible.scm, version: 3.2.1}
+  - {name: ansible.security, version: 5.0.0}
+  - {name: ansible.yang, version: 3.1.0}
+  - {name: arista.avd, version: 6.4.0}
+  - {name: arista.cvp, version: 3.9.0}
+  - {name: arubanetworks.aoscx, version: 4.5.2}
   - {name: awx.awx, version: 24.6.1}
+  - {name: ceph.automation, version: 1.2.0}
   - {name: cisco.asa, version: 7.0.0}
+  - {name: cisco.catalystcenter, version: 2.13.0}
+  - {name: cisco.dcnm, version: 3.13.0}
+  - {name: cisco.dnac, version: 6.51.0}
+  - {name: cisco.ise, version: 3.2.0}
+  - {name: cisco.nd, version: 1.5.0}
+  - {name: cloud.common, version: 4.2.0}
+  - {name: cloud.terraform, version: 4.0.0}
+  - {name: community.sap_install, version: 1.11.0}
+  - {name: community.sap_launchpad, version: 1.4.0}
+  - {name: community.sap_operations, version: 2.0.0}
+  - {name: crowdstrike.falcon, version: 4.14.0}
+  - {name: datadog.dd, version: 6.5.0}
+  - {name: dellemc.powermax, version: 4.1.0}
+  - {name: dellemc.powerscale, version: 3.11.0}
+  - {name: dellemc.powerstore, version: 3.9.0}
+  - {name: digitalocean.cloud, version: 1.9.0}
+  - {name: dynatrace.oneagent, version: 1.3.1}
+  - {name: f5networks.f5_bigip, version: 3.15.0}
+  - {name: fedora.linux_system_roles, version: 2.5.0}
+  - {name: fortinet.fortiadc, version: 1.3.1}
+  - {name: fortinet.fortianalyzer, version: 1.10.0}
+  - {name: fortinet.fortiflexvm, version: 2.3.3}
+  - {name: fortinet.fortiswitch, version: 1.3.0}
+  - {name: freeipa.ansible_freeipa, version: 1.17.0}
+  - {name: hpe.ilo, version: 1.0.41}
+  - {name: hpe.oneview, version: 11.4.0}
+  - {name: infoblox.universal_ddi, version: 1.2.0}
+  - {name: infra.aap_utilities, version: 4.0.0}
+  - {name: infra.ah_configuration, version: 2.1.0}
+  - {name: infra.controller_configuration, version: 3.4.3}
+  - {name: infra.convert2rhel, version: 1.2.1}
+  - {name: infra.eda_configuration, version: 1.1.0}
+  - {name: infra.ee_utilities, version: 4.6.0}
+  - {name: infra.leapp, version: 1.7.6}
+  - {name: infra.lvm_snapshots, version: 2.2.1}
+  - {name: infra.quay_configuration, version: 2.8.1}
+  - {name: juniper.device, version: 2.0.6}
   - {name: junipernetworks.junos, version: 11.1.1}
+  - {name: middleware_automation.amq, version: 2.3.6}
+  - {name: middleware_automation.amq_streams, version: 1.0.2}
+  - {name: middleware_automation.common, version: 1.2.6}
+  - {name: middleware_automation.infinispan, version: 1.3.4}
+  - {name: middleware_automation.jws, version: 2.1.4}
+  - {name: middleware_automation.keycloak, version: 3.1.1}
+  - {name: middleware_automation.wildfly, version: 1.6.0}
+  - {name: netscaler.adc, version: 2.17.0}
+  - {name: nokia.srlinux, version: 1.1.1}
+  - {name: nokia.sros, version: 2.1.0}
+  - {name: nutanix.ncp, version: 2.6.0}
+  - {name: nvidia.nvue, version: 1.2.9}
   - {name: openvswitch.openvswitch, version: 2.2.2}
+  - {name: oracle.oci, version: 5.5.0}
+  - {name: paloaltonetworks.panos, version: 3.4.2}
+  - {name: pulp.squeezer, version: 0.4.0}
   - {name: recordsansible.ara, version: 0.1.0}
+  - {name: redhatinsights.insights, version: 1.3.1}
   - {name: servicenow.itsm, version: 2.16.0}
+  - {name: sophos.sophos_firewall, version: 2.5.2}
+  - {name: theforeman.operations, version: 4.0.1}
+  - {name: zscaler.ziacloud, version: 2.2.4}
+  - {name: zscaler.zpacloud, version: 2.2.12}
+  # Dependencies of the extras
+  - {name: trendmicro.deepsec, version: 4.0.0}

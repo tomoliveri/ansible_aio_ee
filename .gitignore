@@ -1,2 +1,4 @@
 .DS_Store
 context/
+build-logs/
+scripts/__pycache__/

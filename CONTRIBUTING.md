@@ -9,17 +9,18 @@ and the Ansible coding standards every YAML file and playbook in this repo follo
 |---|---|
 | Add a collection that isn't in the `ansible` package | [`extra-collections.txt`](extra-collections.txt), then run `scripts/update-requirements.py` |
 | Drop a collection from the image | [`excluded-collections.txt`](excluded-collections.txt), then run `scripts/update-requirements.py` |
-| Add a Python library a module needs | [`requirements.txt`](requirements.txt), with a comment naming the module/plugin |
+| Add a Python library a module needs | [`optional-requirements.txt`](optional-requirements.txt) (dropped if it conflicts), or [`requirements.txt`](requirements.txt) only if the image must not build without it |
 | Add a system package | [`bindep.txt`](bindep.txt), with `[platform:rpm]` (add `compile` if it's only needed to build wheels) |
 | Change the base image or build steps | [`execution-environment.yml`](execution-environment.yml) |
 
-Never hand-edit [`requirements.yml`](requirements.yml) or the collection table in the README: both are generated.
+Never hand-edit [`requirements.yml`](requirements.yml), [`constraints.txt`](constraints.txt) or the collection table in the README: they are generated.
 
 ### Before opening a pull request
 
 ```sh
 pip install ansible-builder ansible-lint pre-commit
 pre-commit run --all-files                         # yamllint + ansible-lint + hygiene
+scripts/preflight.sh                               # ~2 min dependency check, no image build
 ansible-builder build --tag ansible_aio_ee:dev -v 3
 docker run --rm -v "$PWD/tests:/tests:ro" ansible_aio_ee:dev \
   ansible-playbook /tests/smoke.yml

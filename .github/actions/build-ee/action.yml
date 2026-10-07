@@ -1,0 +1,76 @@
+---
+name: Build execution environment
+description: Build, smoke-test and (optionally) push one architecture of the EE.
+
+inputs:
+  arch:
+    description: amd64 or arm64
+    required: true
+  use-updated-inputs:
+    description: "'true' to overlay the inputs produced by the prepare job"
+    default: "false"
+  export-lock:
+    description: "'true' to upload the resolved pip lock as an artifact"
+    default: "false"
+  push-tag:
+    description: Registry tag to push to (empty = don't push)
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Free disk space
+      shell: bash
+      run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL; df -h /
+
+    - name: Use updated inputs
+      if: inputs.use-updated-inputs == 'true'
+      uses: actions/download-artifact@v8
+      with:
+        name: inputs
+
+    # ansible-builder runs in a pinned Python container, so future runner Python
+    # versions can't break it.
+    - name: Generate build context
+      shell: bash
+      run: |
+        docker run --rm -v "$PWD:/repo" -w /repo "$TOOLS_IMAGE" sh -c \
+          "pip install -q --root-user-action=ignore '$BUILDER' && ansible-builder create -v 2"
+
+    - name: Build image
+      shell: bash
+      run: docker build --pull -t ee:test context
+
+    - name: Smoke test
+      shell: bash
+      run: |
+        docker run --rm ee:test ansible --version
+        docker run --rm ee:test ansible-runner --version
+        if docker run --rm ee:test python3 -c "import requests" 2>&1 | grep RequestsDependencyWarning; then exit 1; fi
+        docker run --rm -v "$PWD/tests:/tests:ro" ee:test ansible-playbook /tests/smoke.yml
+        { echo "### ${{ inputs.arch }}: Python dependency report"; echo '```'
+          docker run --rm ee:test cat /etc/ansible_aio_ee/python-deps-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Export pip lock
+      if: inputs.export-lock == 'true'
+      shell: bash
+      run: |
+        # Only pip-installed packages (/usr/local), not RPM-provided Python modules.
+        docker run --rm ee:test sh -c \
+          'python3 -m pip freeze $(for d in /usr/local/lib*/python3*/site-packages; do echo --path "$d"; done)' \
+          | grep -v '^-e ' > constraints.txt
+        wc -l constraints.txt
+
+    - name: Upload pip lock
+      if: inputs.export-lock == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: lock
+        path: constraints.txt
+
+    - name: Push
+      if: inputs.push-tag != ''
+      shell: bash
+      run: |
+        docker tag ee:test "${{ inputs.push-tag }}"
+        docker push "${{ inputs.push-tag }}"

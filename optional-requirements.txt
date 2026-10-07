@@ -1,0 +1,6 @@
+# Python libraries for collections that don't declare their own requirements.
+# Unlike requirements.txt these are optional: a line that conflicts with the rest of
+# the image is dropped at build time and listed in the image's python-deps-report.txt.
+ciscoisesdk     # cisco.ise (conflicts while ravendb pins requests~=2.32)
+dnacentersdk    # cisco.dnac
+redfish         # hpe.ilo

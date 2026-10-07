@@ -1,9 +1,13 @@
 ---
 version: 3
 
+# Built to run unattended for years:
+# - UBI 10 base: freely redistributable, Red Hat-maintained until ~2035.
+# - dnf strict=0: a system package that disappears is skipped, not fatal.
+# - constraints.txt: pip lock from the last good build; CI regenerates it monthly.
 images:
   base_image:
-    name: quay.io/centos/centos:stream10
+    name: registry.access.redhat.com/ubi10/ubi:latest
 
 dependencies:
   python_interpreter:
@@ -16,9 +20,25 @@ dependencies:
   galaxy: requirements.yml
   python: requirements.txt
   system: bindep.txt
-  exclude:
-    system:
-      - syslinux # dellemc.openmanage ISO role; x86_64-only, installed below
+
+additional_build_files:
+  - src: constraints.txt
+    dest: configs
+  - src: requirements.yml
+    dest: configs
+  - src: optional-requirements.txt
+    dest: configs
+  - src: scripts/resolve_python_deps.py
+    dest: configs
+  - src: scripts/pre-pip-hook.sh
+    dest: configs
+  - src: scripts/prefetch_collections.py
+    dest: configs
+
+build_arg_defaults:
+  # requirements.yml pins the full dependency tree (scripts/update-requirements.py),
+  # so skip ansible-galaxy's slow resolver.
+  ANSIBLE_GALAXY_CLI_COLLECTION_OPTS: "--no-deps --timeout 120"
 
 options:
   package_manager_path: /usr/bin/dnf
@@ -27,10 +47,30 @@ options:
 
 additional_build_steps:
   prepend_base:
-    # CRB + EPEL carry the -devel and extra packages collections ask for.
-    - RUN dnf install -y dnf-plugins-core epel-release && dnf config-manager --set-enabled crb && dnf clean all
+    - ENV PKGMGR_OPTS="--nodocs --setopt=install_weak_deps=0 --setopt=strict=0"
+    - COPY _build/configs/constraints.txt /etc/pip-constraints.txt
+    - ENV PIP_CONSTRAINT=/etc/pip-constraints.txt
+    # EPEL is optional: if it's ever unreachable, its packages are skipped.
+    - >-
+      RUN (dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
+      || echo "WARNING: EPEL unavailable") && dnf clean all
+  prepend_galaxy:
+    # Parallel download + offline install of the pinned collections (~40 min -> minutes);
+    # ansible-galaxy's own step then finds them installed. Never fatal.
+    - COPY _build/requirements.yml _build/configs/prefetch_collections.py /prefetch/
+    - RUN /usr/bin/python3 /prefetch/prefetch_collections.py /prefetch/requirements.yml /usr/share/ansible/collections || true
+  prepend_builder:
+    # Hook scripts/pre-pip-hook.sh into ansible-builder's assemble script, right before
+    # it pip-installs the combined collection requirements: strips unresolvable '-c file'
+    # lines and drops the Python deps of collections that conflict with the rest.
+    - COPY _build/configs/ /output/aio/
+    - >-
+      RUN chmod +x /output/aio/*.sh /output/aio/*.py &&
+      sed -i '\|-r /tmp/src/requirements.txt$|i /output/aio/pre-pip-hook.sh' /output/scripts/assemble &&
+      grep -q pre-pip-hook /output/scripts/assemble
   append_final:
+    - ENV PIP_CONSTRAINT=
+    - RUN mkdir -p /etc/ansible_aio_ee && cp /output/aio/python-deps-report.txt /etc/ansible_aio_ee/
     - LABEL org.opencontainers.image.title=ansible_aio_ee org.opencontainers.image.source=https://github.com/tomoliveri/ansible_aio_ee
     - LABEL org.ansible.version=14.5.0 org.ansible.core-version=2.21.5
-    - RUN if [ "$(uname -m)" = x86_64 ]; then dnf install -y syslinux && dnf clean all; fi
     - RUN ansible --version && ansible-runner --version

@@ -1,9 +1,20 @@
 ---
 name: build
 
-# Kept cheap on purpose: the weekly job only checks for a new ansible release
-# (~20s) and builds only when that changed something. Pushes/PRs lint + build only
-# when EE inputs change; PRs build amd64 only.
+# Built to run unattended for years, cheaply:
+# - Monthly: update to the newest compatible ansible release and extras, then
+#   build with a fresh dependency resolve. Changes are committed and published
+#   only if the build and smoke test pass. If they fail, the last good inputs
+#   are rebuilt with the pip lock (so OS security fixes still ship), the
+#   published image stays working, and an issue is opened.
+# - No changes that month: rebuild the last good inputs for OS security fixes.
+# - Push to main: lint, build and publish only when EE inputs change.
+#   Pull requests: lint + amd64 build, never published.
+# - Tooling runs in a pinned Python container rather than the runner's Python;
+#   the only actions used are GitHub's own.
+# - The workflow re-enables itself monthly so GitHub's 60-day inactivity rule
+#   can't switch off the schedule.
+# - arm64 is best effort; amd64 must pass.
 on:
   push:
     branches: [main]
@@ -11,142 +22,248 @@ on:
       - execution-environment.yml
       - requirements.yml
       - requirements.txt
+      - constraints.txt
       - bindep.txt
+      - optional-requirements.txt
       - tests/**
       - .ansible-lint
       - .yamllint
       - .github/workflows/build.yml
+      - .github/actions/**
   pull_request:
     paths:
       - execution-environment.yml
       - requirements.yml
       - requirements.txt
+      - constraints.txt
       - bindep.txt
+      - optional-requirements.txt
       - tests/**
       - .ansible-lint
       - .yamllint
       - .github/workflows/build.yml
+      - .github/actions/**
   workflow_dispatch:
   schedule:
-    - cron: "17 18 * * 1" # weekly: auto-update to the latest ansible release
+    - cron: "17 18 3 * *" # monthly, 3rd of the month
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 env:
   IMAGE: docker.io/tomoliveri/ansible_aio_ee
+  TOOLS_IMAGE: python:3.12-slim
+  BUILDER: ansible-builder==3.1.1
   # Publish only from main, and only once DOCKERHUB_USERNAME / DOCKERHUB_TOKEN are set.
   PUBLISH: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && secrets.DOCKERHUB_TOKEN != '' }}
 
 jobs:
-  update:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
+      actions: write
     outputs:
       changed: ${{ steps.update.outputs.changed }}
+      preflight_failed: ${{ steps.update.outputs.preflight_failed }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - name: Update to latest ansible release
-        id: update
+      - name: Keep the schedule alive
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/build.yml/enable"
+
+      - name: Fail fast if publishing can't work
+        if: env.PUBLISH != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
-          summary=$(python3 scripts/update-requirements.py)
-          echo "$summary"
-          if git diff --quiet; then
+          echo "::error::DOCKERHUB_TOKEN secret is missing or empty"
+          exit 1
+
+      - name: Check Docker Hub credentials
+        if: env.PUBLISH == 'true'
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Update to newest compatible ansible release
+        id: update
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo "$TOOLS_IMAGE" python3 scripts/update-requirements.py | tee summary.txt
+          if git diff --quiet -- requirements.yml execution-environment.yml; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git config user.name tomoliveri
-          git config user.email tomoliveri@gmail.com
-          git commit -am "Update to ${summary%%:*}"
-          git push
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+          : > constraints.txt # fresh dependency resolve for the new versions
+          # ~2 min preflight (no image build): reject an update that can't resolve before
+          # spending build minutes on it; the last good inputs get rebuilt instead.
+          if scripts/preflight.sh 2>&1 | tee preflight.log; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            git checkout -- requirements.yml execution-environment.yml README.md constraints.txt
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "preflight_failed=true" >> "$GITHUB_OUTPUT"
+            echo "::error::Update to $(cut -d: -f1 summary.txt) failed preflight; rebuilding last good inputs"
+          fi
+          { echo '### Preflight'; echo '```'; tail -20 preflight.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save updated inputs
+        if: steps.update.outputs.changed == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: inputs
+          path: |
+            requirements.yml
+            execution-environment.yml
+            README.md
+            constraints.txt
+            summary.txt
 
   lint:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
+      - uses: actions/checkout@v7
       - name: yamllint + ansible-lint
         run: |
-          pip install ansible-lint==26.9.0 yamllint==1.38.0
-          yamllint .
-          ansible-lint
+          docker run --rm -v "$PWD:/repo" -w /repo "$TOOLS_IMAGE" sh -c \
+            "apt-get -qq update >/dev/null && apt-get -qq install -y git >/dev/null &&
+             git config --global --add safe.directory /repo &&
+             pip install -q --root-user-action=ignore ansible-lint==26.9.0 yamllint==1.38.0 &&
+             yamllint . && ansible-lint"
 
   build:
-    needs: [update, lint]
-    # Runs after `update`/`lint` (or when skipped); scheduled runs build only if something changed.
-    if: >-
-      always() && needs.update.result != 'failure' && needs.lint.result != 'failure' &&
-      (github.event_name != 'schedule' || needs.update.outputs.changed == 'true')
+    needs: [prepare, lint]
+    if: always() && needs.prepare.result == 'success' && needs.lint.result != 'failure'
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64","arm64"]') }}
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
-    timeout-minutes: 60
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    continue-on-error: ${{ matrix.arch == 'arm64' }}
+    timeout-minutes: 75
     steps:
-      - name: Check Docker Hub login (fail fast before the long build)
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        run: |
-          if [ "$PUBLISH" != true ]; then echo "::error::DOCKERHUB_TOKEN secret is missing or empty"; exit 1; fi
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - uses: actions/checkout@v7
 
-      - name: Free disk space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && df -h /
-
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.ref }} # picks up the commit pushed by `update`
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Build
-        run: |
-          pip install ansible-builder==3.1.1
-          ansible-builder build --container-runtime docker --tag ee:test -v 2
-
-      - name: Smoke test
-        run: |
-          docker run --rm ee:test ansible --version
-          docker run --rm ee:test ansible-runner --version
-          if docker run --rm ee:test python3 -c "import requests" 2>&1 | grep RequestsDependencyWarning; then exit 1; fi
-          docker run --rm -v "$PWD/tests:/tests:ro" ee:test ansible-playbook /tests/smoke.yml
-
-      - name: Push arch image
+      - name: Log in to Docker Hub
         if: env.PUBLISH == 'true'
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - uses: ./.github/actions/build-ee
+        with:
+          arch: ${{ matrix.arch }}
+          use-updated-inputs: ${{ needs.prepare.outputs.changed }}
+          export-lock: ${{ needs.prepare.outputs.changed == 'true' && matrix.arch == 'amd64' }}
+          push-tag: ${{ env.PUBLISH == 'true' && format('{0}:build-{1}-{2}', env.IMAGE, github.run_id, matrix.arch) || '' }}
+
+  # The monthly update failed: rebuild the last good inputs so OS fixes still ship.
+  fallback:
+    needs: [prepare, build]
+    if: always() && needs.prepare.outputs.changed == 'true' && needs.build.result == 'failure'
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    continue-on-error: ${{ matrix.arch == 'arm64' }}
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to Docker Hub
+        if: env.PUBLISH == 'true'
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - uses: ./.github/actions/build-ee
+        with:
+          arch: ${{ matrix.arch }}
+          push-tag: ${{ env.PUBLISH == 'true' && format('{0}:build-{1}-{2}', env.IMAGE, github.run_id, matrix.arch) || '' }}
+
+  commit:
+    needs: [prepare, build]
+    if: always() && needs.prepare.outputs.changed == 'true' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: inputs
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: lock
+
+      - name: Commit updated inputs and lock
         run: |
-          docker tag ee:test "$IMAGE:build-${{ github.run_id }}-${{ matrix.arch }}"
-          docker push "$IMAGE:build-${{ github.run_id }}-${{ matrix.arch }}"
+          summary=$(cat summary.txt)
+          git config user.name tomoliveri
+          git config user.email tomoliveri@gmail.com
+          git add requirements.yml execution-environment.yml README.md constraints.txt
+          git commit -m "Update to ${summary%%:*}"
+          git push
 
   publish:
-    needs: build
-    if: always() && needs.build.result == 'success' && github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    needs: [build, fallback]
+    if: >-
+      always() && github.event_name != 'pull_request' &&
+      (needs.build.result == 'success' || needs.fallback.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-        if: env.PUBLISH == 'true'
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Publish multi-arch manifest
+      - name: Publish multi-arch :latest and :<ansible version>
         if: env.PUBLISH == 'true'
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          version=$(grep -oP 'org\.ansible\.version=\K[\w.]+' execution-environment.yml)
-          docker buildx imagetools create \
-            -t "$IMAGE:latest" -t "$IMAGE:$version" \
-            "$IMAGE:build-${{ github.run_id }}-amd64" "$IMAGE:build-${{ github.run_id }}-arm64"
+          sources=()
+          for arch in amd64 arm64; do
+            ref="$IMAGE:build-${{ github.run_id }}-$arch"
+            if docker buildx imagetools inspect "$ref" >/dev/null 2>&1; then sources+=("$ref"); fi
+          done
+          [ "${#sources[@]}" -gt 0 ] || { echo "::error::no arch images were pushed"; exit 1; }
+          version=$(docker buildx imagetools inspect "${sources[0]}" \
+            --format '{{ index .Image.Config.Labels "org.ansible.version" }}' 2>/dev/null || true)
+          tags=(-t "$IMAGE:latest")
+          [ -n "$version" ] && tags+=(-t "$IMAGE:$version")
+          echo "publishing ${tags[*]} from ${sources[*]}"
+          docker buildx imagetools create "${tags[@]}" "${sources[@]}"
+
+  report:
+    needs: [prepare, lint, build, fallback, commit, publish]
+    if: >-
+      always() && github.event_name != 'pull_request' &&
+      (contains(needs.*.result, 'failure') || needs.fallback.result == 'success' ||
+       needs.prepare.outputs.preflight_failed == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the CI failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="Run: $RUN_URL
+          prepare=${{ needs.prepare.result }} lint=${{ needs.lint.result }} build=${{ needs.build.result }}
+          fallback=${{ needs.fallback.result }} commit=${{ needs.commit.result }} publish=${{ needs.publish.result }}
+
+          preflight_failed=${{ needs.prepare.outputs.preflight_failed }}
+
+          If fallback=success or preflight_failed=true, the update failed but the last good inputs were rebuilt and published."
+          number=$(gh issue list --state open --search "in:title \"CI build failing\"" --json number -q '.[0].number')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "CI build failing" --body "$body"
+          fi

@@ -1,7 +1,7 @@
-# System packages for the final image ([compile] = builder stage only).
+# System packages ([compile] = builder stage only). Unavailable packages are skipped (dnf strict=0).
+# No sshpass: ansible-core >= 2.19 handles SSH passwords with its built-in ssh_askpass.
 git [platform:rpm]
 openssh-clients [platform:rpm]
-sshpass [platform:rpm]
 rsync [platform:rpm]
 subversion [platform:rpm]
 nmap [platform:rpm]

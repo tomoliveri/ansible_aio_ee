@@ -49,13 +49,13 @@ docker run --rm -it -v "$PWD:/runner/project" -w /runner/project \
 
 | Layer | Contents |
 |---|---|
-| **Base** | CentOS Stream 10 · Python 3.12 · ansible-core · ansible-runner |
+| **Base** | Red Hat UBI 10 · Python 3.12 · ansible-core · ansible-runner |
 | **Collections** | Everything in the [`ansible`](https://pypi.org/project/ansible/) community package, plus [extras](extra-collections.txt): `awx.awx`, `cisco.asa`, `junipernetworks.junos`, `openvswitch.openvswitch`, `recordsansible.ara`, `servicenow.itsm` |
 | **Python libraries** | Everything the collections declare, plus [extras](requirements.txt) for plugins that don't: WinRM / PSRP with Kerberos + CredSSP, `python-ldap`, `jmespath`, `netaddr`, `hvac`, `pynetbox`, `python-gitlab`, `ara` and more |
-| **System packages** | [`bindep.txt`](bindep.txt): git, ssh + sshpass, rsync, subversion, nmap, krb5, openldap |
+| **System packages** | [`bindep.txt`](bindep.txt): git, ssh, rsync, subversion, nmap, krb5, openldap (SSH passwords use ansible-core's built-in `ssh_askpass`, so no sshpass) |
 
 <!-- BEGIN collections -->
-**ansible 14.5.0** · **ansible-core 2.21.5** · 98 collections
+**ansible 14.5.0** · **ansible-core 2.21.5** · 166 collections
 
 <details>
 <summary>Show all collections</summary>
@@ -154,26 +154,101 @@ docker run --rm -it -v "$PWD:/runner/project" -w /runner/project \
 | `vultr.cloud` | 1.14.1 | bundled |
 | `vyos.vyos` | 6.0.0 | bundled |
 | `wti.remote` | 1.0.11 | bundled |
+| `ansible.eda` | 2.13.0 | extra |
+| `ansible.hub` | 1.1.2 | extra |
+| `ansible.network` | 5.0.0 | extra |
+| `ansible.scm` | 3.2.1 | extra |
+| `ansible.security` | 5.0.0 | extra |
+| `ansible.yang` | 3.1.0 | extra |
+| `arista.avd` | 6.4.0 | extra |
+| `arista.cvp` | 3.9.0 | extra |
+| `arubanetworks.aoscx` | 4.5.2 | extra |
 | `awx.awx` | 24.6.1 | extra |
+| `ceph.automation` | 1.2.0 | extra |
 | `cisco.asa` | 7.0.0 | extra |
+| `cisco.catalystcenter` | 2.13.0 | extra |
+| `cisco.dcnm` | 3.13.0 | extra |
+| `cisco.dnac` | 6.51.0 | extra |
+| `cisco.ise` | 3.2.0 | extra |
+| `cisco.nd` | 1.5.0 | extra |
+| `cloud.common` | 4.2.0 | extra |
+| `cloud.terraform` | 4.0.0 | extra |
+| `community.sap_install` | 1.11.0 | extra |
+| `community.sap_launchpad` | 1.4.0 | extra |
+| `community.sap_operations` | 2.0.0 | extra |
+| `crowdstrike.falcon` | 4.14.0 | extra |
+| `datadog.dd` | 6.5.0 | extra |
+| `dellemc.powermax` | 4.1.0 | extra |
+| `dellemc.powerscale` | 3.11.0 | extra |
+| `dellemc.powerstore` | 3.9.0 | extra |
+| `digitalocean.cloud` | 1.9.0 | extra |
+| `dynatrace.oneagent` | 1.3.1 | extra |
+| `f5networks.f5_bigip` | 3.15.0 | extra |
+| `fedora.linux_system_roles` | 2.5.0 | extra |
+| `fortinet.fortiadc` | 1.3.1 | extra |
+| `fortinet.fortianalyzer` | 1.10.0 | extra |
+| `fortinet.fortiflexvm` | 2.3.3 | extra |
+| `fortinet.fortiswitch` | 1.3.0 | extra |
+| `freeipa.ansible_freeipa` | 1.17.0 | extra |
+| `hpe.ilo` | 1.0.41 | extra |
+| `hpe.oneview` | 11.4.0 | extra |
+| `infoblox.universal_ddi` | 1.2.0 | extra |
+| `infra.aap_utilities` | 4.0.0 | extra |
+| `infra.ah_configuration` | 2.1.0 | extra |
+| `infra.controller_configuration` | 3.4.3 | extra |
+| `infra.convert2rhel` | 1.2.1 | extra |
+| `infra.eda_configuration` | 1.1.0 | extra |
+| `infra.ee_utilities` | 4.6.0 | extra |
+| `infra.leapp` | 1.7.6 | extra |
+| `infra.lvm_snapshots` | 2.2.1 | extra |
+| `infra.quay_configuration` | 2.8.1 | extra |
+| `juniper.device` | 2.0.6 | extra |
 | `junipernetworks.junos` | 11.1.1 | extra |
+| `middleware_automation.amq` | 2.3.6 | extra |
+| `middleware_automation.amq_streams` | 1.0.2 | extra |
+| `middleware_automation.common` | 1.2.6 | extra |
+| `middleware_automation.infinispan` | 1.3.4 | extra |
+| `middleware_automation.jws` | 2.1.4 | extra |
+| `middleware_automation.keycloak` | 3.1.1 | extra |
+| `middleware_automation.wildfly` | 1.6.0 | extra |
+| `netscaler.adc` | 2.17.0 | extra |
+| `nokia.srlinux` | 1.1.1 | extra |
+| `nokia.sros` | 2.1.0 | extra |
+| `nutanix.ncp` | 2.6.0 | extra |
+| `nvidia.nvue` | 1.2.9 | extra |
 | `openvswitch.openvswitch` | 2.2.2 | extra |
+| `oracle.oci` | 5.5.0 | extra |
+| `paloaltonetworks.panos` | 3.4.2 | extra |
+| `pulp.squeezer` | 0.4.0 | extra |
 | `recordsansible.ara` | 0.1.0 | extra |
+| `redhatinsights.insights` | 1.3.1 | extra |
 | `servicenow.itsm` | 2.16.0 | extra |
+| `sophos.sophos_firewall` | 2.5.2 | extra |
+| `theforeman.operations` | 4.0.1 | extra |
+| `zscaler.ziacloud` | 2.2.4 | extra |
+| `zscaler.zpacloud` | 2.2.12 | extra |
+| `trendmicro.deepsec` | 4.0.0 | dependency |
 
 </details>
 <!-- END collections -->
 
-## 🔄 Always current
+## 🔄 Always current, hands-off
 
-The image keeps itself up to date. Every week CI checks for a new `ansible` release. When there is one, it regenerates the pinned collection list, rebuilds for amd64 and arm64, smoke-tests the image and publishes it. Nothing changed? The check finishes in seconds without building.
+The image is built to keep working for years with no maintenance:
+
+- **Monthly auto-update.** CI moves to the newest `ansible` release that runs on the image's Python, refreshes the extra collections, rebuilds amd64 + arm64, smoke-tests, and only then commits and publishes.
+- **Problems are caught before building.** A ~2 minute preflight downloads the collections in parallel and runs the same dependency resolver as the build. An update that can't resolve is rejected before any build minutes are spent.
+- **Never publishes a broken image.** If an update fails to build or test, the last good inputs are rebuilt with the pinned pip lock ([`constraints.txt`](constraints.txt)) so OS security fixes still ship, `:latest` keeps working, and an issue is opened.
+- **Conflicting vendor SDKs don't break it.** When two collections need incompatible versions of a library, the build drops the Python requirements of the fewest collections (extras before bundled ones) instead of failing. The list is in `/etc/ansible_aio_ee/python-deps-report.txt` inside the image and in each CI run summary.
+- **Long-lived base.** [UBI 10](https://catalog.redhat.com/software/base-images) is freely redistributable and maintained by Red Hat until ~2035. A system package that disappears is skipped instead of breaking the build.
+- **Few moving parts in CI.** Tooling runs in a pinned Python container, only GitHub's own actions are used, and the schedule re-enables itself so GitHub's 60-day inactivity rule can't switch it off. arm64 is best effort; amd64 must pass.
 
 | Trigger | What happens |
 |---|---|
-| ⏰ Weekly (Monday) | Update check → build + publish only if something changed |
-| 🔀 Push to `main` | Build + publish, only when EE inputs change |
+| ⏰ Monthly (3rd) | Update → build → test → commit + publish (falls back to last good on failure) |
+| 🔀 Push to `main` | Lint + build + publish, only when EE inputs change |
 | 🧪 Pull request | Lint + amd64 build and smoke test, never published |
-| ▶️ Manual dispatch | Update check → build + publish |
+| ▶️ Manual dispatch | Same as monthly |
 
 ## 🛠️ Build your own
 
@@ -192,8 +267,16 @@ ansible-builder build --tag my_ee -v 3
 | [`excluded-collections.txt`](excluded-collections.txt) | Collections from the `ansible` package to leave out |
 | [`requirements.txt`](requirements.txt) | Python libraries collections don't declare themselves |
 | [`bindep.txt`](bindep.txt) | System packages (`[compile]` = build stage only) |
+| [`optional-requirements.txt`](optional-requirements.txt) | Python libraries for collections that don't declare theirs; dropped (and reported) if they conflict |
+| [`constraints.txt`](constraints.txt) | pip lock from the last good build. **Generated** by CI; empty it to re-resolve |
 
-Move to a new Ansible release (CI does this weekly):
+Check inputs in ~2 minutes without building an image (same resolver and base image as the build; reports which collections' Python requirements would be dropped):
+
+```sh
+scripts/preflight.sh
+```
+
+Move to a new Ansible release (CI does this monthly):
 
 ```sh
 scripts/update-requirements.py          # latest release on PyPI
