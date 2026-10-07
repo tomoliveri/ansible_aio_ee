@@ -1,0 +1,7 @@
+# Maintained collections not shipped in the ansible community package.
+awx.awx
+cisco.asa
+junipernetworks.junos
+openvswitch.openvswitch
+recordsansible.ara
+servicenow.itsm

@@ -1,156 +1,61 @@
 # ansible_aio_ee
-All-in-one execution environment for Ansible Controller / AWX 
+All-in-one execution environment for AWX / Ansible Automation Controller.
 
 ## What does this do?
 
 Once upon a time...
 
-Ansible was 'batteries included', meaning that you could install Ansible, write a playbook and get up and running quickly, most of the modules you'd want to use would come bundled in. This was great for new users, but not so great for the developers who found themselves spread thin, supporting a growing list of modules. 
-The Ansible team decided to take the batteries out. 
+Ansible was 'batteries included', meaning that you could install Ansible, write a playbook and get up and running quickly, most of the modules you'd want to use would come bundled in. This was great for new users, but not so great for the developers who found themselves spread thin, supporting a growing list of modules.
+The Ansible team decided to take the batteries out.
 
 *This makes it easy to put the batteries back in.*
 
-This provides a large number of community collections, allowing you to use modules on AWX or Automation Controller with little fuss. It includes almost all collections (83 out of 89 of the most popular) but not all python libraries.
+The image contains every collection shipped in the `ansible` community package (currently **ansible 14.5.0 / ansible-core 2.21.5**), a few maintained extras, and the Python and system libraries those collections need, so modules work in AWX / Automation Controller with little fuss.
 
 ## Basic Installation
 
-In your AWX / Ansible Automation controller UI, https://awx/#/execution_environments/add
+In your AWX / Automation Controller UI, go to **Execution Environments → Add** and use:
 
-Add:
-```docker.io/tomoliveri/ansible_aoi_ee:latest```
+```
+docker.io/tomoliveri/ansible_aio_ee:latest
+```
 
-You can then add it in job templates as required.
+or pin a release, e.g. `docker.io/tomoliveri/ansible_aio_ee:14.5.0` (tags follow the `ansible` community package version). Images are built for `amd64` and `arm64`.
 
-## Advanced Instalation
+You can then select it in job templates as required.
 
-Requirements for this method:
-  - Docker / Podman
-  - ansible-builder 
+## What's inside
 
-You can modify the requirements.yml file to support *only* the modules you require. 
-You may need to add additional python libraries in your requirements.txt, some of them are captured under collection_requirements. 
-In Development: the custom_build_playbook will generate a new requirements.txt, with only the python libraries associated to the enabled collections.
+- **Base:** CentOS Stream 10, Python 3.12, ansible-core 2.21, ansible-runner 2.4.
+- **Collections:** see [`requirements.yml`](requirements.yml) (generated, pinned) — the full `ansible` package set plus [`extra-collections.txt`](extra-collections.txt) (`awx.awx`, `cisco.asa`, `junipernetworks.junos`, `openvswitch.openvswitch`, `recordsansible.ara`, `servicenow.itsm`).
+- **Python libraries:** whatever each collection declares (added automatically by ansible-builder) plus [`requirements.txt`](requirements.txt) for plugins that don't declare theirs: WinRM/PSRP (with Kerberos and CredSSP), `python-ldap`, `jmespath`, `netaddr`, `hvac`, `pynetbox`, `python-gitlab`, `ara`, and more.
+- **System packages:** [`bindep.txt`](bindep.txt): git, ssh/sshpass, rsync, subversion, nmap, krb5, openldap.
 
-Then, generate a new image with:
-```ansible-builder build --tag ansible_custom_ee -v 3```
+## Building your own
 
-Verbose output is strongly reccomended.
+Requirements: Docker or Podman, and `pip install ansible-builder` (3.x).
 
-## Caveats & Likely issues
+Trim `requirements.yml` / `requirements.txt` to what you need, then:
 
-Almost certainly if you're using this execution environment and your required module fails, it will be due to a missing python library. 
-Feel free to reach out to me, or raise an issue here if you're having trouble and I'll help out when I can. 
-Building a new (and stripped down) execution environment will be the fastest way to get you up and going. 
-See Ansible Builder for instructions - https://github.com/ansible/ansible-builder 
+```
+ansible-builder build --tag ansible_custom_ee -v 3
+```
 
-## Ansible Info
+### Updating to a new Ansible release
 
-```docker run -t -i --rm tomoliveri/ansible_aoi_ee bash
-bash-4.4# ansible --version
-ansible [core 2.11.4rc1.post0] 
-  config file = None
-  configured module search path = ['/home/runner/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
-  ansible python module location = /usr/local/lib/python3.8/site-packages/ansible
-  ansible collection location = /home/runner/.ansible/collections:/usr/share/ansible/collections
-  executable location = /usr/local/bin/ansible
-  python version = 3.8.6 (default, Jan 29 2021, 17:38:16) [GCC 8.4.1 20200928 (Red Hat 8.4.1-1)]
-  jinja version = 2.10.3
-  libyaml = True
+```
+scripts/update-requirements.py            # latest ansible on PyPI
+scripts/update-requirements.py 14.5.0     # or a specific release
+```
 
+This regenerates `requirements.yml` from that release's collection list (from [ansible-build-data](https://github.com/ansible-community/ansible-build-data)) and updates the ansible-core pin in `execution-environment.yml`. Add or remove collections with `extra-collections.txt` and `excluded-collections.txt`, not by editing `requirements.yml`.
 
-## Included Collections
-  - amazon.aws
-  - arista.eos
-  - awx.awx
-  - check_point.mgmt
-  - cisco.aci
-  - cisco.asa
-  - cisco.intersight
-  - cisco.ios
-  - cisco.iosxr
-  - cisco.meraki
-  - cisco.mso
-  - cisco.nso
-  - cisco.nxos
-  - cisco.ucs
-  - cloudscale_ch.cloud
-  - community.aws
-  - community.crypto
-  - community.digitalocean
-  - community.docker
-  - community.fortios
-  - community.general
-  - community.google
-  - community.grafana
-  - community.hashi_vault
-  - community.hrobot 
-  - community.kubevirt
-  - community.kubernetes
-  - community.libvirt
-  - community.mongodb
-  - community.mysql
-  - community.network
-  - community.okd
-  - community.postgresql
-  - community.proxysql
-  - community.rabbitmq
-  - community.routeros 
-  - community.skydive 
-  - community.sops
-  - community.vmware
-  - community.windows
-  - community.zabbix
-  - containers.podman
-  - cyberark.conjur
-  - cyberark.pas
-  - dellemc.enterprise_sonic
-  - dellemc.openmanage
-  - dellemc.os10
-  - dellemc.os6
-  - dellemc.os9
-  - f5networks.f5_modules
-  - fortinet.fortimanager
-  - fortinet.fortios
-  - frr.frr
-  - gluster.gluster
-  - google.cloud
-  - hetzner.hcloud
-  - hpe.nimble
-  - ibm.qradar
-  - inspur.sm
-  - junipernetworks.junos
-  - kubernetes.core
-  - mellanox.onyx
-  - netapp.aws
-  - netapp.cloudmanager
-  - netapp.elementsw
-  - netapp.ontap
-  - netapp_eseries.santricity
-  - netbox.netbox
-  - ngine_io.cloudstack
-  - ngine_io.exoscale
-  - ngine_io.vultr
-  - openstack.cloud
-  - openvswitch.openvswitch
-  - ovirt.ovirt
-  - purestorage.flasharray
-  - purestorage.flashblade
-  - sensu.sensu_go
-  - recordsansible.ara
-  - servicenow.servicenow
-  - splunk.es
-  - t_systems_mms.icinga_director
-  - theforeman.foreman
-  - vyos.vyos
-  - wti.remote
+## CI
 
-## Excluded Collections
-### Disabled due to issue with azure_compute #
- - community.azure 
- - chocolatey.chocolatey 
- - azure.azcollection 
- - netapp.um_info
- - netapp.azure
+`.github/workflows/build.yml` builds and smoke-tests the image for amd64 and arm64 on every push and pull request, and monthly. On `main`, if the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets are set, it publishes `:latest` and `:<ansible version>` to Docker Hub.
 
-### Seems to break things in spectacular fashion 
- - infinidat.infinibox 
+## Caveats & likely issues
+
+If a module fails in this EE, it is almost certainly a missing Python library or system package on the controller side. Open an issue with the module name and error, or add the library to `requirements.txt` and build your own.
+
+Removed since the 2022 image (deprecated, renamed or unmaintained upstream): `community.kubernetes` (use `kubernetes.core`), `community.kubevirt` (use `kubevirt.core`), `community.google`, `community.fortios`, `community.skydive`, `community.azure`, `community.network`, `community.digitalocean`, `servicenow.servicenow` (use `servicenow.itsm`), `t_systems_mms.icinga_director` (use `telekom_mms.icinga_director`), `ngine_io.vultr` (use `vultr.cloud`), `ngine_io.exoscale`, `dellemc.os6/os9/os10`, `cisco.nso`, `frr.frr`, `gluster.gluster`, `hpe.nimble`, `ibm.qradar`, `inspur.sm`, `mellanox.onyx`, `netapp.aws/azure/elementsw/um_info`, `sensu.sensu_go`.

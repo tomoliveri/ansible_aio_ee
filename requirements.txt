@@ -1,37 +1,48 @@
-memcache
-redis
-prettytable
-LogDNA
+# Python libraries for modules/plugins whose collections don't declare them
+# (mostly community.general). Collection-declared deps are added by ansible-builder.
+
+# Windows (winrm / psrp / psexec connections)
+pywinrm[credssp,kerberos]
+pypsrp[credssp,kerberos]
+pypsexec
+
+# Network device connections
+ansible-pylibssh
+paramiko
+
+# Filters / lookups
+jmespath
+netaddr
+passlib
+xmltodict
+lxml
+dnspython
+hvac
 certifi
 flatdict
-logstash
+
+# community.general modules, cache and callback plugins
+python-ldap
 python-gitlab
+PyGithub
+python-jenkins
+python-nomad
+py-consul
 linode_api4
-requests
-dnspython
-python-consul
-pushbullet.py
-pingdom
-atomic
-pychef
-spotinst_sdk
-gunicorn
+nc-dnsapi
 pyghmi
 pycdlib
-linode-python
-matrix-client
-infoblox-client
-nc-dnsapi
-pypsexec
-urllib3
-pynetbox
-hvac
+python-memcached
+redis
+prettytable
+logdna
+python-logstash
+jc
+psutil
 
-# Known to cause issues / not a python package: 
-# pyrax 
-# lxc-python2
-# etcd3 - Insufficient space
-# python-ldap
-# facter
-# ruby-json
-# manageiq-client
+# Inventory/integrations
+pynetbox
+ara
+
+# Constraints: infinidat.infinibox asks for unpinned chardet; requests only supports <6
+chardet<6

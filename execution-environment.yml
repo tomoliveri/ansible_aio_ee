@@ -1,10 +1,35 @@
 ---
-version: 1
+version: 3
+
+images:
+  base_image:
+    name: quay.io/centos/centos:stream10
+
 dependencies:
+  python_interpreter:
+    package_system: python3
+    python_path: /usr/bin/python3
+  ansible_core:
+    package_pip: ansible-core==2.21.5
+  ansible_runner:
+    package_pip: ansible-runner
   galaxy: requirements.yml
   python: requirements.txt
   system: bindep.txt
+  exclude:
+    system:
+      - syslinux # dellemc.openmanage ISO role; x86_64-only, installed below
+
+options:
+  package_manager_path: /usr/bin/dnf
+  tags:
+    - ansible_aio_ee:latest
 
 additional_build_steps:
-  prepend: |
-    RUN pip3 install --upgrade pip setuptools
+  prepend_base:
+    # CRB + EPEL carry the -devel and extra packages collections ask for.
+    - RUN dnf install -y dnf-plugins-core epel-release && dnf config-manager --set-enabled crb && dnf clean all
+  append_final:
+    - LABEL org.opencontainers.image.source=https://github.com/tomoliveri/ansible_aio_ee org.ansible.version=14.5.0
+    - RUN if [ "$(uname -m)" = x86_64 ]; then dnf install -y syslinux && dnf clean all; fi
+    - RUN ansible --version && ansible-runner --version

@@ -1,4 +1,0 @@
-ncclient
-paramiko
-ipaddress
-ansible-pylibssh

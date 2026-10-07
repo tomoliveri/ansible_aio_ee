@@ -1,3 +1,0 @@
-purity_fb>=1.9
-netaddr
-pytz

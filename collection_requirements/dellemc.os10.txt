@@ -1,5 +1,0 @@
-lxml
-xmltodict
-textfsm
-units
-PyYAML

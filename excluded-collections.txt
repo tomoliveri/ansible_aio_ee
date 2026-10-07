@@ -1,0 +1,1 @@
+# Collections from the ansible community package to leave out of the image.

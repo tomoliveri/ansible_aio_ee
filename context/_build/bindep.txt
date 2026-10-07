@@ -1,3 +1,0 @@
-subversion [platform:rpm]
-subversion [platform:dpkg]
-nmap [platform:rpm]
