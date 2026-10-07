@@ -13,6 +13,7 @@ import json
 import os
 import pathlib
 import re
+import ssl
 import sys
 import urllib.request
 
@@ -20,6 +21,14 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 REPO = "tomoliveri/ansible_aio_ee"
 IMAGE = f"docker.io/{REPO}"
 GITHUB = f"https://github.com/{REPO}"
+
+
+def ssl_context():
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
 
 
 def inputs():
@@ -143,7 +152,7 @@ def push(version, core, sections, drops):
         data=json.dumps({"username": user, "password": token}).encode(),
         headers={"Content-Type": "application/json"},
     )
-    jwt = json.load(urllib.request.urlopen(login, timeout=60))["token"]
+    jwt = json.load(urllib.request.urlopen(login, timeout=60, context=ssl_context()))["token"]
     total = sum(len(v) for v in sections.values())
     body = {
         "description": f"All-in-one Ansible EE for AWX/Controller: ansible {version}, {total} collections, amd64+arm64"[:100],
@@ -154,7 +163,7 @@ def push(version, core, sections, drops):
         data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {jwt}"},
     )
-    urllib.request.urlopen(update, timeout=60).read()
+    urllib.request.urlopen(update, timeout=60, context=ssl_context()).read()
     print(f"Docker Hub overview updated for {version}")
 
 
