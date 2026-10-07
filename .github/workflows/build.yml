@@ -1,12 +1,31 @@
 name: build
 
+# Kept cheap on purpose: the weekly job only checks for a new ansible release
+# (~20s) and builds only when that changed something. Pushes/PRs build only when
+# EE inputs change; PRs build amd64 only.
 on:
   push:
     branches: [main]
+    paths:
+      - execution-environment.yml
+      - requirements.yml
+      - requirements.txt
+      - bindep.txt
+      - .github/workflows/build.yml
   pull_request:
+    paths:
+      - execution-environment.yml
+      - requirements.yml
+      - requirements.txt
+      - bindep.txt
+      - .github/workflows/build.yml
   workflow_dispatch:
   schedule:
-    - cron: "0 3 1 * *" # monthly rebuild to pick up base-image security fixes
+    - cron: "17 18 * * 1" # weekly: auto-update to the latest ansible release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   IMAGE: docker.io/tomoliveri/ansible_aio_ee
@@ -14,21 +33,51 @@ env:
   PUBLISH: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && secrets.DOCKERHUB_TOKEN != '' }}
 
 jobs:
+  update:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.update.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Update to latest ansible release
+        id: update
+        run: |
+          summary=$(python3 scripts/update-requirements.py)
+          echo "$summary"
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name tomoliveri
+          git config user.email tomoliveri@gmail.com
+          git commit -am "Update to ${summary%%:*}"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: update
+    # Runs after `update` (or when it was skipped); scheduled runs build only if something changed.
+    if: >-
+      always() && needs.update.result != 'failure' &&
+      (github.event_name != 'schedule' || needs.update.outputs.changed == 'true')
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-24.04
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64","arm64"]') }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 60
     steps:
       - name: Free disk space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && df -h /
 
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }} # picks up the commit pushed by `update`
 
       - uses: actions/setup-python@v6
         with:
@@ -37,13 +86,14 @@ jobs:
       - name: Build
         run: |
           pip install ansible-builder==3.1.1
-          ansible-builder build --container-runtime docker --tag ee:test -v 3
+          ansible-builder build --container-runtime docker --tag ee:test -v 2
 
       - name: Smoke test
         run: |
           docker run --rm ee:test ansible --version
           docker run --rm ee:test ansible-runner --version
           docker run --rm ee:test ansible localhost -m ansible.builtin.ping
+          if docker run --rm ee:test python3 -c "import requests" 2>&1 | grep RequestsDependencyWarning; then exit 1; fi
           docker run --rm ee:test python3 -c "import winrm, pypsrp, ldap, jmespath, netaddr, hvac, pynetbox, kubernetes, boto3"
           count=$(docker run --rm ee:test ansible-galaxy collection list --format json | python3 -c "import json,sys;print(sum(len(v) for v in json.load(sys.stdin).values()))")
           echo "collections installed: $count"
@@ -58,10 +108,14 @@ jobs:
 
   publish:
     needs: build
+    if: always() && needs.build.result == 'success' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
         if: env.PUBLISH == 'true'
+        with:
+          ref: ${{ github.ref }}
 
       - name: Publish multi-arch manifest
         if: env.PUBLISH == 'true'

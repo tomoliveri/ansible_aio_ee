@@ -52,7 +52,13 @@ This regenerates `requirements.yml` from that release's collection list (from [a
 
 ## CI
 
-`.github/workflows/build.yml` builds and smoke-tests the image for amd64 and arm64 on every push and pull request, and monthly. On `main`, if the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets are set, it publishes `:latest` and `:<ansible version>` to Docker Hub.
+`.github/workflows/build.yml`, kept deliberately cheap:
+
+- **Weekly (Mondays):** runs `scripts/update-requirements.py`. If a new `ansible` release (or a newer extra collection) is out, it commits the update to `main`, builds amd64 + arm64, smoke-tests, and publishes `:latest` and `:<ansible version>` to Docker Hub. If nothing changed, the run ends after ~20 seconds without building.
+- **Push to `main` / pull requests:** builds only when the EE inputs change (`execution-environment.yml`, `requirements.*`, `bindep.txt`); PRs build amd64 only and never publish.
+- **Manual:** *Actions → build → Run workflow* updates, rebuilds and publishes.
+
+Publishing needs the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (Docker Hub access token, Read & Write) repository secrets.
 
 ## Caveats & likely issues
 
