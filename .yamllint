@@ -1,0 +1,21 @@
+---
+# yamllint settings compatible with ansible-lint's production profile.
+extends: default
+
+ignore: |
+  context/
+
+rules:
+  line-length:
+    max: 160
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: false
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false

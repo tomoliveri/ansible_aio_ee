@@ -1,0 +1,14 @@
+---
+# Ansible coding standards for this repo: see CONTRIBUTING.md.
+profile: production
+
+exclude_paths:
+  - context/
+  - .github/
+
+# The EE build installs these; lint doesn't need to.
+offline: true
+
+# Collections aren't installed for linting (offline); declare what tests/ uses.
+mock_modules:
+  - community.general.ldap_search

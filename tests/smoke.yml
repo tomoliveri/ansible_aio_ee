@@ -1,0 +1,47 @@
+---
+# Runs inside the built image (CI and local) to prove the batteries are in.
+- name: Smoke test the execution environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Import Python libraries collections and plugins rely on
+      ansible.builtin.command:
+        cmd: >-
+          python3 -c "import winrm, pypsrp, ldap, jmespath, netaddr, hvac,
+          pynetbox, kubernetes, boto3, requests"
+      changed_when: false
+
+    - name: Check collection filters work
+      ansible.builtin.assert:
+        that:
+          - "[{'a': 1}] | community.general.json_query('[0].a') == 1"
+          - "'10.0.0.1/24' | ansible.utils.ipaddr('network') == '10.0.0.0'"
+        quiet: true
+
+    - name: Run community.general.ldap_search against a closed port
+      community.general.ldap_search:
+        server_uri: ldap://127.0.0.1:1
+        dn: dc=example,dc=com
+      register: smoke_ldap
+      ignore_errors: true # noqa: ignore-errors -- the failure itself is what we test
+
+    - name: Check ldap_search failed on the network, not on a missing library
+      ansible.builtin.assert:
+        that:
+          - smoke_ldap is failed
+          - "'No module named' not in (smoke_ldap.msg | default(''))"
+        quiet: true
+
+    - name: List installed collections
+      ansible.builtin.command:
+        cmd: ansible-galaxy collection list --format json
+      register: smoke_collections
+      changed_when: false
+
+    - name: Check the full collection set is installed
+      ansible.builtin.assert:
+        that:
+          - smoke_collections.stdout | from_json | dict2items | map(attribute='value') | map('length') | sum >= 90
+        quiet: true

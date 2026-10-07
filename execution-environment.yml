@@ -30,6 +30,7 @@ additional_build_steps:
     # CRB + EPEL carry the -devel and extra packages collections ask for.
     - RUN dnf install -y dnf-plugins-core epel-release && dnf config-manager --set-enabled crb && dnf clean all
   append_final:
-    - LABEL org.opencontainers.image.source=https://github.com/tomoliveri/ansible_aio_ee org.ansible.version=14.5.0
+    - LABEL org.opencontainers.image.title=ansible_aio_ee org.opencontainers.image.source=https://github.com/tomoliveri/ansible_aio_ee
+    - LABEL org.ansible.version=14.5.0 org.ansible.core-version=2.21.5
     - RUN if [ "$(uname -m)" = x86_64 ]; then dnf install -y syslinux && dnf clean all; fi
     - RUN ansible --version && ansible-runner --version

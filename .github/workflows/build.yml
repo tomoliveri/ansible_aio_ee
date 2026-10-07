@@ -1,8 +1,9 @@
+---
 name: build
 
 # Kept cheap on purpose: the weekly job only checks for a new ansible release
-# (~20s) and builds only when that changed something. Pushes/PRs build only when
-# EE inputs change; PRs build amd64 only.
+# (~20s) and builds only when that changed something. Pushes/PRs lint + build only
+# when EE inputs change; PRs build amd64 only.
 on:
   push:
     branches: [main]
@@ -11,6 +12,9 @@ on:
       - requirements.yml
       - requirements.txt
       - bindep.txt
+      - tests/**
+      - .ansible-lint
+      - .yamllint
       - .github/workflows/build.yml
   pull_request:
     paths:
@@ -18,6 +22,9 @@ on:
       - requirements.yml
       - requirements.txt
       - bindep.txt
+      - tests/**
+      - .ansible-lint
+      - .yamllint
       - .github/workflows/build.yml
   workflow_dispatch:
   schedule:
@@ -59,11 +66,28 @@ jobs:
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
+  lint:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: yamllint + ansible-lint
+        run: |
+          pip install ansible-lint==26.9.0 yamllint==1.38.0
+          yamllint .
+          ansible-lint
+
   build:
-    needs: update
-    # Runs after `update` (or when it was skipped); scheduled runs build only if something changed.
+    needs: [update, lint]
+    # Runs after `update`/`lint` (or when skipped); scheduled runs build only if something changed.
     if: >-
-      always() && needs.update.result != 'failure' &&
+      always() && needs.update.result != 'failure' && needs.lint.result != 'failure' &&
       (github.event_name != 'schedule' || needs.update.outputs.changed == 'true')
     strategy:
       fail-fast: true
@@ -98,12 +122,8 @@ jobs:
         run: |
           docker run --rm ee:test ansible --version
           docker run --rm ee:test ansible-runner --version
-          docker run --rm ee:test ansible localhost -m ansible.builtin.ping
           if docker run --rm ee:test python3 -c "import requests" 2>&1 | grep RequestsDependencyWarning; then exit 1; fi
-          docker run --rm ee:test python3 -c "import winrm, pypsrp, ldap, jmespath, netaddr, hvac, pynetbox, kubernetes, boto3"
-          count=$(docker run --rm ee:test ansible-galaxy collection list --format json | python3 -c "import json,sys;print(sum(len(v) for v in json.load(sys.stdin).values()))")
-          echo "collections installed: $count"
-          test "$count" -ge 90
+          docker run --rm -v "$PWD/tests:/tests:ro" ee:test ansible-playbook /tests/smoke.yml
 
       - name: Push arch image
         if: env.PUBLISH == 'true'

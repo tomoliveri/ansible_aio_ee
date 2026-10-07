@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate requirements.yml and the ansible-core pin from an Ansible community release.
+"""Regenerate requirements.yml, the README collection table and the ansible-core pin from an Ansible community release.
 
 The collection set is the one shipped in the `ansible` community package (curated
 and maintained upstream), plus the extras in extra-collections.txt (pinned to their
@@ -71,9 +71,32 @@ def main():
         out += [f"  - {{name: {n}, version: {v}}}" for n, v in sorted(extras.items())]
     (ROOT / "requirements.yml").write_text("\n".join(out) + "\n")
 
+    rows = [f"| `{n}` | {v} | bundled |" for n, v in sorted(collections.items())]
+    rows += [f"| `{n}` | {v} | extra |" for n, v in sorted(extras.items())]
+    table = "\n".join([
+        f"**ansible {version}** · **ansible-core {core}** · {len(collections) + len(extras)} collections",
+        "",
+        "<details>",
+        "<summary>Show all collections</summary>",
+        "",
+        "| Collection | Version | Source |",
+        "|---|---|---|",
+        *rows,
+        "",
+        "</details>",
+    ])
+    readme = ROOT / "README.md"
+    readme.write_text(re.sub(
+        r"(<!-- BEGIN collections -->\n).*?(<!-- END collections -->)",
+        lambda m: f"{m.group(1)}{table}\n{m.group(2)}",
+        readme.read_text(),
+        flags=re.S,
+    ))
+
     ee = ROOT / "execution-environment.yml"
     text = re.sub(r"ansible-core==[\w.]+", f"ansible-core=={core}", ee.read_text())
     text = re.sub(r"(org\.ansible\.version=)[\w.]+", rf"\g<1>{version}", text)
+    text = re.sub(r"(org\.ansible\.core-version=)[\w.]+", rf"\g<1>{core}", text)
     ee.write_text(text)
     print(f"ansible {version} / ansible-core {core}: {len(collections)} bundled + {len(extras)} extra collections")
 
