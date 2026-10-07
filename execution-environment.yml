@@ -4,7 +4,8 @@ version: 3
 # Built to run unattended for years:
 # - UBI 10 base: freely redistributable, Red Hat-maintained until ~2035.
 # - dnf strict=0: a system package that disappears is skipped, not fatal.
-# - constraints.txt: pip lock from the last good build; CI regenerates it monthly.
+# - constraints.txt: versions from the last good build, used as resolver *preferences*
+#   (never hard pins); CI regenerates it monthly.
 images:
   base_image:
     name: registry.access.redhat.com/ubi10/ubi:latest
@@ -49,7 +50,7 @@ additional_build_steps:
   prepend_base:
     - ENV PKGMGR_OPTS="--nodocs --setopt=install_weak_deps=0 --setopt=strict=0"
     - COPY _build/configs/constraints.txt /etc/pip-constraints.txt
-    - ENV PIP_CONSTRAINT=/etc/pip-constraints.txt
+    - ENV AIO_PIP_LOCK=/etc/pip-constraints.txt
     # EPEL is optional: if it's ever unreachable, its packages are skipped.
     - >-
       RUN (dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
@@ -69,7 +70,6 @@ additional_build_steps:
       sed -i '\|-r /tmp/src/requirements.txt$|i /output/aio/pre-pip-hook.sh' /output/scripts/assemble &&
       grep -q pre-pip-hook /output/scripts/assemble
   append_final:
-    - ENV PIP_CONSTRAINT=
     - RUN mkdir -p /etc/ansible_aio_ee && cp /output/aio/python-deps-report.txt /etc/ansible_aio_ee/
     - LABEL org.opencontainers.image.title=ansible_aio_ee org.opencontainers.image.source=https://github.com/tomoliveri/ansible_aio_ee
     - LABEL org.ansible.version=14.5.0 org.ansible.core-version=2.21.5

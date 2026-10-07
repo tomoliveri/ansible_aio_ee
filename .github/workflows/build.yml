@@ -213,14 +213,22 @@ jobs:
           git push
 
   publish:
-    needs: [build, fallback]
+    needs: [prepare, build, fallback, commit]
     if: >-
       always() && github.event_name != 'pull_request' &&
       (needs.build.result == 'success' || needs.fallback.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v7
+        if: env.PUBLISH == 'true'
+        with:
+          ref: ${{ github.ref }} # includes the update commit, if any
+
       - name: Publish multi-arch :latest and :<ansible version>
+        id: manifest
         if: env.PUBLISH == 'true'
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
@@ -236,6 +244,39 @@ jobs:
           [ -n "$version" ] && tags+=(-t "$IMAGE:$version")
           echo "publishing ${tags[*]} from ${sources[*]}"
           docker buildx imagetools create "${tags[@]}" "${sources[@]}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v8
+        if: env.PUBLISH == 'true'
+        continue-on-error: true
+        with:
+          name: report
+
+      # The fallback path rebuilt the last good inputs; describe those, not the rejected update.
+      - name: Use the inputs that were actually built
+        if: env.PUBLISH == 'true' && needs.fallback.result == 'success'
+        run: git checkout "${{ github.sha }}" -- execution-environment.yml requirements.yml
+
+      - name: Update Docker Hub overview
+        if: env.PUBLISH == 'true'
+        continue-on-error: true # cosmetic; never fail a publish over it
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: python3 scripts/release_notes.py push python-deps-report.txt
+
+      - name: Create GitHub release for a new version
+        if: env.PUBLISH == 'true' && steps.manifest.outputs.version != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.manifest.outputs.version }}
+        run: |
+          existing=$(gh release list --limit 1000 --json tagName -q ".[].tagName" | grep -Fx "$VERSION" || true)
+          [ -z "$existing" ] || { echo "release $VERSION already exists (monthly rebuild)"; exit 0; }
+          python3 scripts/release_notes.py notes python-deps-report.txt > notes.md
+          gh release create "$VERSION" --target "$(git rev-parse HEAD)" \
+            --title "ansible $VERSION" --notes-file notes.md
 
   report:
     needs: [prepare, lint, build, fallback, commit, publish]

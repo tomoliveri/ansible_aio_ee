@@ -59,13 +59,14 @@ def bundled_collections(galaxy_reqs):
 CONSTRAINTS = pathlib.Path(tempfile.gettempdir()) / "aio-constraints.txt"
 
 
+LOCK = pathlib.Path(os.environ.get("AIO_PIP_LOCK") or "/nonexistent")
+
+
 def write_constraints():
-    """Keep the ansible-core/runner already installed in the image, plus the pip lock."""
+    """Hard pins: only the ansible-core/runner already installed in the image. The pip lock
+    (constraints.txt) is a *preference* (see resolves()), so a stale lock entry can never
+    knock a collection out."""
     pins = [f"{p}=={importlib.metadata.version(p)}" for p in ("ansible-core", "ansible-runner")]
-    lock = pathlib.Path(os.environ.get("PIP_CONSTRAINT") or "/nonexistent")
-    if lock.is_file():
-        pins += [line for line in lock.read_text().splitlines()
-                 if line.strip() and not line.lower().startswith(("ansible-core==", "ansible-runner=="))]
     CONSTRAINTS.write_text("\n".join(pins) + "\n")
 
 
@@ -73,17 +74,23 @@ def resolves(lines):
     """Compile `lines` with uv. Returns (ok, pinned requirements or error text)."""
     with tempfile.NamedTemporaryFile("w", suffix=".in", delete=False) as tmp:
         tmp.write("\n".join(lines) + "\n")
+    # uv prefers the versions already in --output-file (pip-tools semantics): seed it with the lock.
+    output = pathlib.Path(tmp.name + ".lock")
+    output.write_text(LOCK.read_text() if LOCK.is_file() else "")
     try:
         result = subprocess.run(
             [sys.executable, "-m", "uv", "pip", "compile", tmp.name, "--python", sys.executable,
-             "--constraint", str(CONSTRAINTS), "--no-header", "--no-annotate", "--quiet"],
+             "--constraint", str(CONSTRAINTS), "--output-file", str(output),
+             "--no-header", "--no-annotate", "--quiet"],
             capture_output=True, text=True, check=False, timeout=900,
             env=dict(os.environ, UV_NO_PROGRESS="1"),
         )
-        ok, out = result.returncode == 0, (result.stdout if result.returncode == 0 else result.stderr[-3000:])
+        ok = result.returncode == 0
+        out = output.read_text() if ok else result.stderr[-3000:]
     except subprocess.TimeoutExpired:
         ok, out = False, "uv pip compile timed out"
     pathlib.Path(tmp.name).unlink()
+    output.unlink(missing_ok=True)
     return ok, out
 
 
