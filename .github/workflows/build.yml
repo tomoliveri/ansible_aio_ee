@@ -259,11 +259,13 @@ jobs:
 
       - name: Update Docker Hub overview
         if: env.PUBLISH == 'true'
-        continue-on-error: true # cosmetic; never fail a publish over it
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: python3 scripts/release_notes.py push python-deps-report.txt
+        # Cosmetic: never fail a publish over it, but make a failure visible on the run.
+        run: |
+          python3 scripts/release_notes.py push python-deps-report.txt ||
+            echo "::warning::Docker Hub overview not updated (the token needs the 'Read, Write, Delete' scope to edit repository details)"
 
       - name: Create GitHub release for a new version
         if: env.PUBLISH == 'true' && steps.manifest.outputs.version != ''
